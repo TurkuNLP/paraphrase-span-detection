@@ -25,9 +25,20 @@ from metrics import average_f1_score, calculate_exact_match
 
 
 
-def embed(data, model, method="AVG"):
+def embed(data, model, method="AVG", gpu=False):
   with torch.no_grad():
-      emb = model(input_ids=data["input_ids"], token_type_ids=data["token_type_ids"], attention_mask=data["attention_mask"])
+      if gpu:
+          input_ids=data["input_ids"].cuda()
+          token_type_ids=data["token_type_ids"].cuda()
+          attention_mask=data["attention_mask"].cuda()
+          spec_mask=data["special_tokens_mask"].cuda()
+      else:
+          input_ids=data["input_ids"]
+          token_type_ids=data["token_type_ids"]
+          attention_mask=data["attention_mask"]
+          spec_mask=data["special_tokens_mask"]
+
+      emb = model(input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask)
       if method == "POOLER":
           return emb.pooler_output
       elif method == "CLS":
@@ -36,12 +47,10 @@ def embed(data, model, method="AVG"):
           return cls
       elif method == "AVG":
           last_hidden=emb.last_hidden_state
-          attention_mask = data["attention_mask"]
-          spec_mask = data["special_tokens_mask"]
           attention_mask=attention_mask*(spec_mask*-1+1)
           attention_mask_sum=torch.sum(attention_mask,dim=-1) 
           last_hidden_masked=last_hidden.mul(attention_mask.unsqueeze(-1))
-          last_hidden_masked_sum=torch.sum(last_hidden_masked,dim=1) #
+          last_hidden_masked_sum=torch.sum(last_hidden_masked,dim=1)
           last_hidden_mean=torch.div(last_hidden_masked_sum,attention_mask_sum.unsqueeze(-1))
           return last_hidden_mean
       else:
@@ -53,7 +62,8 @@ def predict(questions, contexts, args):
     # init model
     bert_tokenizer=transformers.BertTokenizer.from_pretrained("TurkuNLP/bert-base-finnish-cased-v1")
     model=transformers.BertModel.from_pretrained("TurkuNLP/bert-base-finnish-cased-v1")
-    #model=model.cuda() 
+    if args.gpu:
+        model=model.cuda() 
     model=model.eval() 
     cosine = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
     
@@ -71,7 +81,7 @@ def predict(questions, contexts, args):
   
         # EMBED QUESTION
         q_tokenized = bert_tokenizer(q, padding=True, truncation=True, return_tensors="pt", return_special_tokens_mask=True)
-        q_emb = embed(q_tokenized, model, method=args.pooling_method)
+        q_emb = embed(q_tokenized, model, method=args.pooling_method, gpu=args.gpu)
 
         # EMBED CONTEXT
         # same context can repeat many times, cache the embeddings
@@ -80,11 +90,14 @@ def predict(questions, contexts, args):
             context_emb = doc_cache[c_hash]
         else:
             d_tokenized = bert_tokenizer(docs, padding=True, truncation=True, return_tensors="pt", return_special_tokens_mask=True)
-            context_emb = embed(d_tokenized, model, method=args.pooling_method)
+            context_emb = embed(d_tokenized, model, method=args.pooling_method, gpu=args.gpu)
             doc_cache[c_hash] = context_emb
 
 
         # CALCULATE SIMILARITY
+        if args.gpu:
+            q_emb = q_emb.cpu()
+            context_emb = context_emb.cpu()
         similarity = cosine(q_emb, context_emb)
         similarity = similarity.numpy()
         max_index = np.argmax(similarity)
@@ -138,6 +151,7 @@ if __name__=="__main__":
     parser.add_argument('--eval_data_dir', type=str, required=True)
     parser.add_argument('--pooling-method', default="AVG", help=" Options: AVG, POOLER, or CLS.", type=str)
     parser.add_argument('--max-examples', default=0, type=int, help="Number of examples to run, use 0 for all.")
+    parser.add_argument('--gpu', default=False, action="store_true", help="Use gpu, default False.")
     
     args = parser.parse_args()
     
