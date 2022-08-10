@@ -59,3 +59,17 @@ python3 run_qa.py \
   --output_dir /output/ \
   --cache_dir /caches/ \
 ```
+
+# Prediction
+
+```bash
+python3 run_qa.py \
+  --model_name_or_path trained-model-name \
+  --test_file test.json \
+  --do_predict \
+  --output_dir predictions \
+  --per_device_eval_batch_size 16 \
+  --max_seq_length 512 \
+  --doc_stride 128 \
+  --version_2_with_negative
+```
