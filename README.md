@@ -63,7 +63,7 @@ python3 run_qa.py \
 # Evaluate using development/test data
 
 **Notes:**
-- If running the evaluation with a model trained using positive examples only (SQUAD version 1), the input data must be filtered to so that negative (unanswerable) questions are filtered out. Use `--version_2_with_negative` for SQUAD version 2 evaluation.
+- If running the evaluation with a model trained using positive examples only (SQUAD version 1), the input data must be filtered so that negative (unanswerable) questions are discarded. Use `--version_2_with_negative` for SQUAD version 2 evaluation.
 
 ```bash
 python3 run_qa.py \
