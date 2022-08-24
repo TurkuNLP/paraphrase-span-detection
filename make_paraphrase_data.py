@@ -11,7 +11,7 @@ def read_data(args):
         contexts = json.load(f)
     return data, contexts
 
-def refine_data(data, contexts):
+def refine_data(data, contexts, skip_negatives=False):
     """
     This function applys the setting of queston answering data creation for paraphrase detection. The data can be used for training a BERT with 
     run_qa.py
@@ -56,6 +56,8 @@ def refine_data(data, contexts):
         context_doc_id = d["context"]["doc2"]
         context_doc_text = contexts[context_doc_id]
         if label == "1" or label == "2": # negative example
+            if skip_negatives == True:
+                continue
             answers['answer_start'] = []
             answers['text'] = []
         else:
@@ -72,6 +74,8 @@ def refine_data(data, contexts):
         context_doc_id = d["context"]["doc1"]
         context_doc_text = contexts[context_doc_id]
         if label == "1" or label == "2": # negative example
+            if skip_negatives == True:
+                continue
             answers['answer_start'] = []
             answers['text'] = []
         else:
@@ -91,7 +95,7 @@ def main(args):
 
     data, contexts = read_data(args)
 
-    qa_data = refine_data(data, contexts)
+    qa_data = refine_data(data, contexts, skip_negatives=args.skip_negatives)
     
     dataset = {}
     dataset["version"] = "0.0.0"
@@ -109,6 +113,7 @@ if __name__=="__main__":
     parser.add_argument('--file', '-f', type=str, required=True)
     parser.add_argument('--context', '-c', type=str, required=True)
     parser.add_argument('--output', '-o', type=str, required=True)
+    parser.add_argument('--skip_negatives', default=False, action="store_true", help="Skip all negative examples (label 2 or below)")
     
     args = parser.parse_args()
     

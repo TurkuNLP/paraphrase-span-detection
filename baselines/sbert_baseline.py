@@ -25,7 +25,7 @@ from metrics import average_f1_score, calculate_exact_match
 def predict(questions, contexts, args):
 
     # init model
-    model = SentenceTransformer('paraphrase-xlm-r-multilingual-v1')
+    model = SentenceTransformer(args.sbert)
 
     cosine = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
     
@@ -106,7 +106,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--eval_data_dir', type=str, required=True)
     parser.add_argument('--max-examples', default=0, type=int, help="Number of examples to run, use 0 for all.")
-    parser.add_argument('--gpu', default=False, action="store_true", help="Use gpu, default False.")
+    parser.add_argument('--sbert', default="TurkuNLP/sbert-cased-finnish-paraphrase", help="Name of the SBERT model")
     
     args = parser.parse_args()
     
