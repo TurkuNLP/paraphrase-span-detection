@@ -1,0 +1,15 @@
+{
+    "data": [
+        {
+            "context": "Esimerkiksi Tilastokeskuksen käyttämän luokituksen mukaan kerrostaloasunnossa kuluu vuodessa sähköä noin 2 000 kilowattituntia. Oletuksena on, että asunnossa ei ole omaa saunaa.\nPientalossa kuluu sähköä 5 000 kilowattituntia vuodessa, kun oletetaan, että talo lämpiää sähkön sijasta kaukolämmöllä, eikä saunakaan ole kasvattamassa kulutusta.\nSähkölämmitteisessä pientalossa sähkön kulutus on tyypillisesti 18 000–20 000 kilowattitunnin luokkaa.\nSähkön hinta on ollut kovassa nousussa viime vuoden lopulta lähtien. Hintamuutokset näkyvät sähköpörssissä, mutta pörssin helilahdukset tuntuvat suoraan vain sille noin kahdeksalle prosentille kotitalouksista, joiden sähkön hinta on sidottu sähköpörssiin.",
+            "id": "example-1",
+            "question": "Saunattoman kerrostaloasunnon vuosikulutus on 2000 kWh:n luokkaa, arvioi Tilastokeskus."
+        },
+        {
+            "context": "Esimerkiksi Tilastokeskuksen käyttämän luokituksen mukaan kerrostaloasunnossa kuluu vuodessa sähköä noin 2 000 kilowattituntia. Oletuksena on, että asunnossa ei ole omaa saunaa.\nPientalossa kuluu sähköä 5 000 kilowattituntia vuodessa, kun oletetaan, että talo lämpiää sähkön sijasta kaukolämmöllä, eikä saunakaan ole kasvattamassa kulutusta.\nSähkölämmitteisessä pientalossa sähkön kulutus on tyypillisesti 18 000–20 000 kilowattitunnin luokkaa.\nSähkön hinta on ollut kovassa nousussa viime vuoden lopulta lähtien. Hintamuutokset näkyvät sähköpörssissä, mutta pörssin helilahdukset tuntuvat suoraan vain sille noin kahdeksalle prosentille kotitalouksista, joiden sähkön hinta on sidottu sähköpörssiin.",
+            "id": "example-2",
+            "question": "Kaukolämmitteinen, saunaton rivitaloasunto tai muu vastaavanlainen pientalo taas käyttää keskimäärin 5000 kWh vuodessa."
+        }
+    ],
+    "version": "v0.0.1"
+}

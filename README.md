@@ -59,3 +59,37 @@ python3 run_qa.py \
   --output_dir /output/ \
   --cache_dir /caches/ \
 ```
+
+# Evaluate using development/test data
+
+**Notes:**
+- If running the evaluation with a model trained using positive examples only (SQUAD version 1), the input data must be filtered so that negative (unanswerable) questions are discarded. Use `--version_2_with_negative` for SQUAD version 2 evaluation.
+
+```bash
+python3 run_qa.py \
+  --model_name_or_path trained-model-name \
+  --test_file test.json \
+  --do_predict \
+  --output_dir predictions \
+  --per_device_eval_batch_size 16 \
+  --max_seq_length 512 \
+  --doc_stride 128 \
+  --version_2_with_negative
+```
+
+# Predict with new examples
+
+**Notes:**
+- See `pred_input.json` for correct input format.
+- Predictions are written to `output_dir/predict_predictions.json`.
+- Use `--version_2_with_negative` for SQUAD version 2 -style model.
+
+```bash
+python3 predict.py \
+  --model_name_or_path trained-model-name \
+  --prediction_file pred_input.json \
+  --output_dir predictions \
+  --per_device_eval_batch_size 16 \
+  --max_seq_length 512 \
+  --doc_stride 128
+```
