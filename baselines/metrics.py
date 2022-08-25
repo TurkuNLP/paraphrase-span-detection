@@ -46,8 +46,7 @@ def compute_f1(a_gold, a_pred):
 def average_f1_score(gold_data, predictions_data):
     assert len(gold_data)==len(predictions_data)
     score=0
-    for i in range(len(gold_data)):
-        key=str(i)
+    for key in predictions_data:
         score+=compute_f1(gold_data[key], predictions_data[key])
     return score/len(gold_data)*100
 
@@ -55,7 +54,7 @@ def calculate_exact_match(gold_data, predictions):
 
     correct = 0
     assert len(gold_data)==len(predictions)
-    for key in gold_data:
+    for key in predictions:
         gold = gold_data[key]
         pred = predictions[key]
         if normalize_answer(gold) == normalize_answer(pred):
