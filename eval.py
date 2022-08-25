@@ -41,8 +41,8 @@ if __name__=="__main__":
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gold", default=None, required=True, help="Gold json file")
-    parser.add_argument("--predictions", default=None, required=True, help="Predictions json file")
+    parser.add_argument("--gold", "-g", default=None, required=True, help="Gold json file")
+    parser.add_argument("--predictions", "-p", default=None, required=True, help="Predictions json file")
     args = parser.parse_args()
     
     main(args)
