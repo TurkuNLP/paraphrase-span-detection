@@ -17,6 +17,7 @@ import os
 import hashlib
 import tqdm
 import argparse
+from tfidf_baseline import get_oracle_predictions
 from sentence_transformers import SentenceTransformer
 
 from metrics import average_f1_score, calculate_exact_match
@@ -101,6 +102,19 @@ def main(args):
 
     em = calculate_exact_match(answers, preds)
     print("Exact match:", em)
+
+    ## ORACLE ##
+    print("Calculating oracle scores...")
+    with open(os.path.join(args.eval_data_dir, 'answers.json'), 'r') as json_file:
+        answers = json.load(json_file)
+    oracle_predictions = get_oracle_predictions(answers, contexts)
+
+    f1 = average_f1_score(answers, oracle_predictions)
+    print("Oracle average F-score:", f1)
+    
+    em = calculate_exact_match(answers, oracle_predictions)
+    print("Oracle exact match:", em)
+    print()
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
