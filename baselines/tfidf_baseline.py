@@ -79,10 +79,19 @@ def main(args):
     # This data is used to fit the vectorizer
     with open(args.train_data, "rt", encoding="utf-8") as f:
         train_texts = json.load(f) # list of sentences
+        train_docs = []
+        for key, val in train_texts.items():
+            if val not in train_docs:
+                train_docs.append(val)
+        train_sentences = [s for d in train_docs for s in d]
+        print("Training sentences for the vectorizer:", len(train_sentences))
+        del train_texts, train_docs # free memory
+
+
 
     print("Training vectorizers...")
-    vectorizers = train_vectorizers(train_texts)
-    del train_texts # free memory
+    vectorizers = train_vectorizers(train_sentences)
+    del train_sentences # free memory
     print("Done.\n")
 
     
