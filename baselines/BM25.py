@@ -64,9 +64,9 @@ if __name__=="__main__":
     bm.train(documents)
     print(bm.N, bm.avgdl, bm.df, bm.idf)
     
-    questions=["a", "a b", "c", "d"]
+    queries=["a", "a b", "c", "d"]
     
-    for q in questions:
+    for q in queries:
         print("Q:", q)
         for d in documents:
             s = bm.score(q, d)
@@ -81,8 +81,8 @@ if __name__=="__main__":
 #    bm = BM25(b=1.0, k=5.0)
 #    bm.train(documents)
 
-#    questions = ["Shane"]
-#    for q in questions:
+#    queries = ["Shane"]
+#    for q in queries:
 #        print("Q:", q)
 #        for d in documents:
 #            s = bm.score(q, d)
