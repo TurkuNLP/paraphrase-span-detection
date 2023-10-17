@@ -17,15 +17,43 @@ def filter_negatives(examples):
     return filt_examples
 
 
-def conllu2sent(conllu_str):
+def conllu2sent(conllu_str, tokenize=False):
     sentences = []
+    tokens = []
     lines = conllu_str.split("\n")
     for line in lines:
         line = line.strip()
-        if line.startswith("# text ="): # this has the sentence without tokenization
+        if not line:
+            if tokenize==True and tokens:
+                sentences.append(" ".join(tokens))
+                tokens = []
+            continue
+        if tokenize==False and line.startswith("# text ="): # this has the sentence without tokenization
             sentences.append(line.replace("# text = ", "").strip())
+        if tokenize==True and not line.startswith("#"): # token line
+            cols = line.split("\t")
+            tokens.append(cols[1])
+    if tokenize == True and tokens:
+        sentences.append(" ".join(tokens))
     return sentences
-        
+    
+def tokenize_chunk(chunk, model, tokenize=False):
+    # tokenixe a text chunk without splitting it to sentences
+    if tokenize==False:
+        return chunk
+    chunk = chunk.replace("\n\n", "\n")
+    conllu = model.process(chunk)
+    tokens = []
+    lines = conllu.split("\n")
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        cols = line.split("\t")
+        tokens.append(cols[1])
+    return " ".join(tokens)
+    
+    
 
 
 def main(args):
@@ -60,9 +88,9 @@ def main(args):
             a = data['data'][i]['answers']['text'][0]
         
         
-        tokenized_questions[str(i)]=data['data'][i]['question']
-        tokenized_contexts[str(i)]=conllu2sent(docs)
-        tokenized_answers[str(i)]=a
+        tokenized_questions[str(i)]=tokenize_chunk(data['data'][i]['question'], pipeline, tokenize=args.tokenize)
+        tokenized_contexts[str(i)]=conllu2sent(docs, tokenize=args.tokenize)
+        tokenized_answers[str(i)]=tokenize_chunk(a, pipeline, tokenize=args.tokenize)
 
 
     # save
@@ -85,6 +113,7 @@ if __name__=="__main__":
     parser.add_argument('--udpipe_model', type=str, required=True)
     parser.add_argument('--output-dir', type=str, required=True)
     parser.add_argument('--skip_negatives', action="store_true", default=False, help="Skip negative examples (label 2 and below), default False")
+    parser.add_argument('--tokenize', action="store_true", default=False, help="Tokenize examples for word-level models (BM25), default False")
     
     args = parser.parse_args()
     

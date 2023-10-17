@@ -140,21 +140,27 @@ def prepare_model(args):
 def predict_all_spans(questions, contexts, model):
 
     predictions = {}
-    for idx, q in questions.items(): # todo items()
-        context = " ".join([s for s in contexts[idx]])
+    for idx in tqdm.tqdm(questions.keys()):
+        q = questions[idx]
+        context = " ".join([s for s in contexts[idx]]) # from sentences to document
         tokens = context.split()
         max_sim = 0.0
         max_span = ""
+        c = 0
         for i in range(0, len(tokens)): # i is the start of span
             for j in range(i+1, min(i+66, len(tokens))): # j is the end of span
+            #for j in range(i+1, len(tokens)): # j is the end of span
                 span = " ".join(tokens[i:j])
                 s = model.score(q, span)
                 if s > max_sim:
                     max_sim = s
                     max_span = span
+                c+=1
                 #print(s, span, q)
-        print(max_sim, max_span, q)
-        break
+        #print(max_sim, max_span, q)
+        #print("c=",c)
+        predictions[idx] = max_span
+    return predictions
         
         
 def predict_sentences(questions, contexts, model):
@@ -174,6 +180,17 @@ def predict_sentences(questions, contexts, model):
     return predictions
         
 
+
+def sample(data, size):
+    if size == 0:
+        return data
+    sample={}
+    for key in sorted(data.keys()):
+        sample[key]=data[key]
+        if len(sample) >= size:
+            return sample
+    return sample
+
 def main(args):
 
     ## PREPARE MODEL ##
@@ -184,15 +201,21 @@ def main(args):
     ## READ EVAL DATA ##
     with open(f'{args.eval_data_dir}/contexts.json', 'r') as json_file:
         contexts = json.load(json_file)
+        contexts = sample(contexts, args.sample_size)
     with open(f'{args.eval_data_dir}/questions.json', 'r') as json_file:
         questions = json.load(json_file)
+        questions = sample(questions, args.sample_size)
+    with open(f'{args.eval_data_dir}/answers.json', 'r') as json_file:
+        answers = json.load(json_file)
+        answers = sample(answers, args.sample_size)
+    assert len(answers)==len(questions)
     assert(len(contexts)==len(questions))
     print("Preparing data ready.\n")
         
     ## predict ##
     if args.all_spans:
         print("Comparing against all possible spans.")
-        preds = predict(questions, contexts, model) # predictions is a dict
+        preds = predict_all_spans(questions, contexts, model) # predictions is a dict
     else:
         print("Comparing against original segments.")
         preds = predict_sentences(questions, contexts, model)
@@ -200,9 +223,7 @@ def main(args):
         
     ## EVALUATE ##
     
-    with open(f'{args.eval_data_dir}/answers.json', 'r') as json_file:
-        answers = json.load(json_file)
-    assert len(answers)==len(questions)
+    
     
     f1 = average_f1_score(answers, preds)
     print("F-score:", f1)
@@ -211,7 +232,8 @@ def main(args):
     print("Exact match:", em)
     print()
     
-    
+    import sys
+    sys.exit()
         
     ## ORACLE ##
     print("Calculating oracle scores...")
@@ -232,7 +254,8 @@ if __name__=="__main__":
     parser.add_argument('--train_data', type=str, required=True) # json file with list of training sentences
     parser.add_argument('--eval_data_dir', type=str, required=True)
     parser.add_argument('--model', type=str, required=True)
-    parser.add_argument('--all-spans', default=False, action="store_true", help="Compere to all possible spans, default False.")
+    parser.add_argument('--all-spans', default=False, action="store_true", help="Compare to all possible spans, default False.")
+    parser.add_argument('--sample-size', type=int, default=0, help="Sample size, default=0 (all).")
     
     args = parser.parse_args()
     

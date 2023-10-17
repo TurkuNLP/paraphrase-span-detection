@@ -64,7 +64,7 @@ def main(args):
         del train_texts, train_docs # free memory
 
     print("Training the BM25 model...")
-    bm25=BM25()
+    bm25=BM25(k=args.k, b=args.b)
     bm25.train(train_sentences)
     del train_sentences # free memory
     print("Done.\n")
@@ -94,7 +94,8 @@ def main(args):
     print("Exact match:", em)
     print()
     
-    
+    import sys
+    sys.exit()
         
     ## ORACLE ##
     print("Calculating oracle scores...")
@@ -114,6 +115,8 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_data', type=str, required=True) # json file with list of training sentences
     parser.add_argument('--eval_data_dir', type=str, required=True)
+    parser.add_argument('--k', type=float, default=1.2)
+    parser.add_argument('--b', type=float, default=0.75)
     
     args = parser.parse_args()
     
