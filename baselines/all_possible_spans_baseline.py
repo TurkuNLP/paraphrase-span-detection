@@ -72,6 +72,8 @@ class SBERT(object):
         q_emb = self.model.encode(q, convert_to_tensor=True, device=self.model.device, normalize_embeddings=True)
         context_emb = self.model.encode(doc, convert_to_tensor=True, device=self.model.device, normalize_embeddings=True)
         similarity = torch.dot(q_emb, context_emb)
+        if torch.cuda.is_available():
+            similarity = similarity.cpu()
         return similarity.numpy()
 
 
@@ -157,8 +159,8 @@ def predict_all_spans(questions, contexts, model):
                     max_span = span
                 c+=1
                 #print(s, span, q)
-        #print(max_sim, max_span, q)
-        #print("c=",c)
+        print(max_sim, max_span, q)
+        print("c=",c)
         predictions[idx] = max_span
     return predictions
         
