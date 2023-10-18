@@ -44,24 +44,38 @@ class BERT(object):
 
     def __init__(self):
         print("CUDA:", torch.cuda.is_available())
+        self.tokenizer = transformers.BertTokenizer.from_pretrained("TurkuNLP/bert-base-finnish-cased-v1")
+        self.model = transformers.BertModel.from_pretrained("TurkuNLP/bert-base-finnish-cased-v1").eval()
         if torch.cuda.is_available():
-            self.model = transformers.pipeline("feature-extraction", model="TurkuNLP/bert-base-finnish-cased-v1", device=0)
-        else:
-            self.model = transformers.pipeline("feature-extraction", model="TurkuNLP/bert-base-finnish-cased-v1")
+            model=model.cuda() 
+            
+            #self.model = transformers.pipeline("feature-extraction", model="TurkuNLP/bert-base-finnish-cased-v1", device=0)
+            #self.model = transformers.pipeline("feature-extraction", model="TurkuNLP/bert-base-finnish-cased-v1")
 
     def train(self, data):
         pass
         
     def embed(self, texts):
-        assert False, "not implemented!"
-        return torch.nn.functional.normalize(torch.tensor(self.model(q)).mean(1), dim=1)
+        with torch.no_grad():
+            tok = self.tokenizer(texts, padding=True, truncation=True, return_tensors="pt", return_special_tokens_mask=True)
+            if torch.cuda.is_available():
+                input_ids, token_type_ids, attention_mask, spec_mask = tok["input_ids"].cuda(), tok["token_type_ids"].cuda(), tok["attention_mask"].cuda(), tok["special_tokens_mask"].cuda()
+            else:
+                input_ids, token_type_ids, attention_mask, spec_mask = tok["input_ids"], tok["token_type_ids"], tok["attention_mask"], tok["special_tokens_mask"]
+            emb = self.model(input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask)
+            last_hidden=emb.last_hidden_state
+            attention_mask=attention_mask*(spec_mask*-1+1)
+            attention_mask_sum=torch.sum(attention_mask,dim=-1)
+            last_hidden_masked=last_hidden.mul(attention_mask.unsqueeze(-1))
+            last_hidden_masked_sum=torch.sum(last_hidden_masked,dim=1)
+            last_hidden_mean=torch.div(last_hidden_masked_sum,attention_mask_sum.unsqueeze(-1))
+            return torch.nn.functional.normalize(last_hidden_mean, dim=1)
         
     def score(self, q_emb, doc_emb):
-        assert False, "not implemented!"
-        q_emb = torch.nn.functional.normalize(torch.tensor(self.model(q)).mean(1).squeeze(), dim=0)
-        doc_emb = torch.nn.functional.normalize(torch.tensor(self.model(doc)).mean(1).squeeze(), dim=0)
-        similarity = torch.mm(q_emb, doc_emb)
-        return similarity.numpy()
+        similarity = torch.mm(q_emb, doc_emb.T)
+        if torch.cuda.is_available():
+            similarity = similarity.cpu()
+        return similarity.numpy()[0]
         
         
 class SBERT(object):
@@ -156,6 +170,7 @@ def batch_iter(context_tokens, batch_size):
                 batch = []
     if batch:
         yield batch
+        
     
 # Max number of tokens (train): 181
 # Number of tokens (dev): 57
