@@ -32,11 +32,13 @@ class TFIDF(object):
     def train(self, data):
         self.model.fit(data)
         
-    def score(self, q, doc):
-        doc_vec = self.model.transform([doc]) # Transform documents to document-term matrix.
-        q_vec = self.model.transform([q]) # grab the question and vectorize it
+    def embed(self, texts):
+        vec = self.model.transform(texts)
+        return vec
+        
+    def score(self, q_vec, doc_vec):
         similarity = pairwise.cosine_similarity(q_vec, doc_vec)
-        return similarity[0,0]
+        return similarity[0,:]
         
 class BERT(object):
 
@@ -50,10 +52,15 @@ class BERT(object):
     def train(self, data):
         pass
         
-    def score(self, q, doc):
+    def embed(self, texts):
+        assert False, "not implemented!"
+        return torch.nn.functional.normalize(torch.tensor(self.model(q)).mean(1), dim=1)
+        
+    def score(self, q_emb, doc_emb):
+        assert False, "not implemented!"
         q_emb = torch.nn.functional.normalize(torch.tensor(self.model(q)).mean(1).squeeze(), dim=0)
         doc_emb = torch.nn.functional.normalize(torch.tensor(self.model(doc)).mean(1).squeeze(), dim=0)
-        similarity = torch.dot(q_emb, doc_emb)
+        similarity = torch.mm(q_emb, doc_emb)
         return similarity.numpy()
         
         
@@ -68,13 +75,16 @@ class SBERT(object):
     def train(self, data):
         pass
         
-    def score(self, q, doc):
-        q_emb = self.model.encode(q, convert_to_tensor=True, device=self.model.device, normalize_embeddings=True)
-        context_emb = self.model.encode(doc, convert_to_tensor=True, device=self.model.device, normalize_embeddings=True)
-        similarity = torch.dot(q_emb, context_emb)
+    def embed(self, texts):
+        emb = self.model.encode(texts, convert_to_tensor=True, device=self.model.device, normalize_embeddings=True)
+        return emb
+        
+    def score(self, q_emb, context_emb):
+        
+        similarity = torch.mm(q_emb, context_emb.T)
         if torch.cuda.is_available():
             similarity = similarity.cpu()
-        return similarity.numpy()
+        return similarity.numpy()[0]
 
 
 
@@ -134,12 +144,23 @@ def prepare_model(args):
         assert False
     return model
     
-    
+def batch_iter(context_tokens, batch_size):
+
+    batch = []
+    for i in range(0, len(context_tokens)): # i is the start of span
+        for j in range(i+1, min(i+66, len(context_tokens))): # j is the end of span
+            span = " ".join(context_tokens[i:j])
+            batch.append(span)
+            if len(batch) >= batch_size:
+                yield batch
+                batch = []
+    if batch:
+        yield batch
     
 # Max number of tokens (train): 181
 # Number of tokens (dev): 57
 # Number of tokens (test): 66
-def predict_all_spans(questions, contexts, model):
+def predict_all_spans(questions, contexts, model, batch_size=10):
 
     predictions = {}
     for idx in tqdm.tqdm(questions.keys()):
@@ -149,18 +170,17 @@ def predict_all_spans(questions, contexts, model):
         max_sim = 0.0
         max_span = ""
         c = 0
-        for i in range(0, len(tokens)): # i is the start of span
-            for j in range(i+1, min(i+66, len(tokens))): # j is the end of span
-            #for j in range(i+1, len(tokens)): # j is the end of span
-                span = " ".join(tokens[i:j])
-                s = model.score(q, span)
+        q_vec=model.embed([q])
+        for batch in batch_iter(tokens, batch_size):
+            batch_vec = model.embed(batch)
+            sims = model.score(q_vec, batch_vec)
+            for i, s in enumerate(sims):
                 if s > max_sim:
                     max_sim = s
-                    max_span = span
-                c+=1
-                #print(s, span, q)
-        print(max_sim, max_span, q)
-        print("c=",c)
+                    max_span = batch[i]
+            c+=len(batch)
+        #print(max_sim, max_span, q)
+        #print("c=",c)
         predictions[idx] = max_span
     return predictions
         
@@ -214,10 +234,13 @@ def main(args):
     assert(len(contexts)==len(questions))
     print("Preparing data ready.\n")
         
+    if args.model=="BM25":
+        args.batch_size = 1 # overwrite batch_size
+        
     ## predict ##
     if args.all_spans:
         print("Comparing against all possible spans.")
-        preds = predict_all_spans(questions, contexts, model) # predictions is a dict
+        preds = predict_all_spans(questions, contexts, model, batch_size=args.batch_size) # predictions is a dict
     else:
         print("Comparing against original segments.")
         preds = predict_sentences(questions, contexts, model)
@@ -257,6 +280,7 @@ if __name__=="__main__":
     parser.add_argument('--eval_data_dir', type=str, required=True)
     parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--all-spans', default=False, action="store_true", help="Compare to all possible spans, default False.")
+    parser.add_argument('--batch-size', type=int, default=10, help="Batch size for embedding, default=10.")
     parser.add_argument('--sample-size', type=int, default=0, help="Sample size, default=0 (all).")
     
     args = parser.parse_args()

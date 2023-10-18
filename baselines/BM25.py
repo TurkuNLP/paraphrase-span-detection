@@ -19,7 +19,7 @@ class BM25(object):
         doc_lengths = []
         df = {}
         for doc in documents:
-            tokens = doc.split()
+            tokens = doc.lower().split()
             doc_lengths.append(len(tokens))
             for token in list(set(tokens)): # unique tokens
                 if token not in df:
@@ -38,10 +38,18 @@ class BM25(object):
         assert term in self.df
         idf = ln(((self.N - self.df[term] + 0.5)/(self.df[term] + 0.5)) + 1)
         return idf
+        
+    def embed(self, text):
+        # a wrapper function to be similar with other classes
+        if text.isinstance(str):
+            return text
+        if text.isinstance(list) and len(text)==1:
+            return text[0]
+        assert False
 
     def score(self, q, doc):
-        q_tokens = q.split()
-        doc_tokens = doc.split()
+        q_tokens = q.lower().split()
+        doc_tokens = doc.lower().split()
         doc_tf = Counter(doc_tokens)
         score = 0.0
         for term in q_tokens:
