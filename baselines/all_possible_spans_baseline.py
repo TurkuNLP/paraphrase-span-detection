@@ -48,9 +48,6 @@ class BERT(object):
         self.model = transformers.BertModel.from_pretrained("TurkuNLP/bert-base-finnish-cased-v1").eval()
         if torch.cuda.is_available():
             self.model = self.model.cuda() 
-            
-            #self.model = transformers.pipeline("feature-extraction", model="TurkuNLP/bert-base-finnish-cased-v1", device=0)
-            #self.model = transformers.pipeline("feature-extraction", model="TurkuNLP/bert-base-finnish-cased-v1")
 
     def train(self, data):
         pass
@@ -158,7 +155,10 @@ def prepare_model(args):
         assert False
     return model
     
-def batch_iter(context_tokens, batch_size):
+def batch_iter_spans(context, batch_size):
+
+    context = " ".join([s for s in context]) # from sentences to document
+    context_tokens = context.split()
 
     batch = []
     for i in range(0, len(context_tokens)): # i is the start of span
@@ -171,24 +171,40 @@ def batch_iter(context_tokens, batch_size):
     if batch:
         yield batch
         
-    
+
+def batch_iter_sentences(context, batch_size):
+
+    batch = []
+    for s in context:
+        batch.append(s)
+        if len(batch) >= batch_size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+        
 # Max number of tokens (train): 181
 # Number of tokens (dev): 57
 # Number of tokens (test): 66
-def predict_all_spans(questions, contexts, model, batch_size=10):
+def predict(questions, contexts, model, batch_size=10, all_spans=False):
 
     predictions = {}
     for idx in tqdm.tqdm(questions.keys()):
         q = questions[idx]
-        context = " ".join([s for s in contexts[idx]]) # from sentences to document
-        tokens = context.split()
+        context = contexts[idx]
         max_sim = 0.0
         max_span = ""
         c = 0
         q_vec=model.embed([q])
-        for batch in batch_iter(tokens, batch_size):
+        if all_spans:
+            batch_iter = batch_iter_spans(context, batch_size)
+        else:
+            batch_iter = batch_iter_sentences(context, batch_size)
+        for batch in batch_iter:
             batch_vec = model.embed(batch)
             sims = model.score(q_vec, batch_vec)
+            if isinstance(sims, float): # hack, BM25 returns float (do not support batching), while other models return list/array
+                sims = [sims]
             for i, s in enumerate(sims):
                 if s > max_sim:
                     max_sim = s
@@ -198,24 +214,6 @@ def predict_all_spans(questions, contexts, model, batch_size=10):
         #print("c=",c)
         predictions[idx] = max_span
     return predictions
-        
-        
-def predict_sentences(questions, contexts, model):
-
-    predictions = {}
-    for idx in tqdm.tqdm(questions.keys()):
-        q = questions[idx]
-        context = contexts[idx]
-        max_sim = 0.0
-        max_target = ""
-        for target in context:
-            s = model.score(q, target)
-            if s > max_sim:
-                max_sim = s
-                max_target = target
-        predictions[idx] = max_target
-    return predictions
-        
 
 
 def sample(data, size):
@@ -253,17 +251,12 @@ def main(args):
         args.batch_size = 1 # overwrite batch_size
         
     ## predict ##
-    if args.all_spans:
-        print("Comparing against all possible spans.")
-        preds = predict_all_spans(questions, contexts, model, batch_size=args.batch_size) # predictions is a dict
-    else:
-        print("Comparing against original segments.")
-        preds = predict_sentences(questions, contexts, model)
+    preds = predict(questions, contexts, model, batch_size=args.batch_size, all_spans=args.all_spans)
 
+
+    
         
     ## EVALUATE ##
-    
-    
     
     f1 = average_f1_score(answers, preds)
     print("F-score:", f1)

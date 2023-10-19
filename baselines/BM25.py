@@ -41,9 +41,9 @@ class BM25(object):
         
     def embed(self, text):
         # a wrapper function to be similar with other classes
-        if text.isinstance(str):
+        if isinstance(text, str):
             return text
-        if text.isinstance(list) and len(text)==1:
+        if isinstance(text, list) and len(text)==1:
             return text[0]
         assert False
 
@@ -59,7 +59,7 @@ class BM25(object):
             tf = doc_tf[term] # returns zero if term does not occur in this document
             t_score = term_idf * ((tf * (self.k + 1)) / (tf + self.k * (1 - self.b + self.b*(len(doc_tokens)/self.avgdl))))
             score += t_score
-        return score
+        return float(score)
         
         
         
