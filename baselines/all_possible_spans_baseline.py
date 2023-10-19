@@ -47,7 +47,7 @@ class BERT(object):
         self.tokenizer = transformers.BertTokenizer.from_pretrained("TurkuNLP/bert-base-finnish-cased-v1")
         self.model = transformers.BertModel.from_pretrained("TurkuNLP/bert-base-finnish-cased-v1").eval()
         if torch.cuda.is_available():
-            model=model.cuda() 
+            self.model = self.model.cuda() 
             
             #self.model = transformers.pipeline("feature-extraction", model="TurkuNLP/bert-base-finnish-cased-v1", device=0)
             #self.model = transformers.pipeline("feature-extraction", model="TurkuNLP/bert-base-finnish-cased-v1")
