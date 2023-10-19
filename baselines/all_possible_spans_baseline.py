@@ -137,7 +137,7 @@ def prepare_model(args):
             print("Training sentences:", len(train_sentences))
             del train_texts, train_docs # free memory
     if args.model == "BM25":
-        model = BM25()
+        model = BM25(k=0.1, b=0.3)
         model.train(train_sentences)
         del train_sentences
     elif args.model == "TF-IDF":
@@ -257,6 +257,9 @@ def main(args):
     
         
     ## EVALUATE ##
+    if args.store_predictions:
+        with open(args.store_predictions, "wt", encoding="utf-8") as f:
+            json.dump(preds, f, indent=4, ensure_ascii=False)
     
     f1 = average_f1_score(answers, preds)
     print("F-score:", f1)
@@ -290,6 +293,7 @@ if __name__=="__main__":
     parser.add_argument('--all-spans', default=False, action="store_true", help="Compare to all possible spans, default False.")
     parser.add_argument('--batch-size', type=int, default=10, help="Batch size for embedding, default=10.")
     parser.add_argument('--sample-size', type=int, default=0, help="Sample size, default=0 (all).")
+    parser.add_argument('--store-predictions', type=str, default="", help="File to store predictions.")
     
     args = parser.parse_args()
     
