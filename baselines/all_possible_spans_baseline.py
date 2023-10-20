@@ -162,7 +162,7 @@ def batch_iter_spans(context, batch_size):
 
     batch = []
     for i in range(0, len(context_tokens)): # i is the start of span
-        for j in range(i+1, min(i+66, len(context_tokens))): # j is the end of span
+        for j in range(i+1, min(i+100, len(context_tokens))): # j is the end of span
             span = " ".join(context_tokens[i:j])
             batch.append(span)
             if len(batch) >= batch_size:
@@ -227,6 +227,8 @@ def sample(data, size):
     return sample
 
 def main(args):
+
+    print("Args:", args)
 
     ## PREPARE MODEL ##
     model=prepare_model(args)
